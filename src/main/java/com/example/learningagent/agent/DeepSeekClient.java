@@ -61,8 +61,12 @@ public class DeepSeekClient {
         if (apiKey == null || apiKey.isBlank() || articles.isEmpty()) return null;
         try {
             StringBuilder sources = new StringBuilder();
-            for (SourceArticle a : articles) sources.append("标题：").append(a.title()).append("\n来源：").append(a.source()).append("\n链接：").append(a.url()).append("\n\n");
-            String prompt = "你是个人学习 Agent。请围绕学习方向 " + track + "，从候选文章中选择最适合今天学习的一篇。title 必须原样复制所选文章标题，内容必须紧扣该文章。返回 JSON：{title, article, questions:[{prompt, expectedPoints}]}。article 用中文写 400 字以内，questions 必须正好 3 道，分别考察理解、应用、思考。不要返回 Markdown。\n候选文章：\n" + sources;
+            for (SourceArticle a : articles) {
+                sources.append("标题：").append(a.title()).append("\n来源：").append(a.source()).append("\n链接：").append(a.url());
+                if (a.summary() != null && !a.summary().isBlank()) sources.append("\n原文摘要：").append(a.summary(), 0, Math.min(a.summary().length(), 1200));
+                sources.append("\n\n");
+            }
+            String prompt = "你是个人学习 Agent。请围绕学习方向 " + track + "，从候选文章中选择最适合今天学习的一篇。title 必须原样复制所选文章标题，内容必须紧扣该文章。返回 JSON：{title, article, questions:[{prompt, expectedPoints}]}。article 用中文写约 800 到 1200 字，分段说明背景、核心机制、一个具体工程例子、适用条件与限制、如何验证效果。以原文摘要为事实依据；摘要没有的版本细节、命令和性能数字不要编造，可明确说需要查证。questions 必须正好 3 道，分别考察理解、应用、思考；expectedPoints 要具体。不要返回 Markdown。\n候选文章：\n" + sources;
             Map<String, Object> body = Map.of("model", "deepseek-flash", "messages", List.of(Map.of("role", "system", "content", "你是一位循序渐进的技术老师。"), Map.of("role", "user", "content", prompt)), "temperature", 0.4, "response_format", Map.of("type", "json_object"));
             HttpRequest request = HttpRequest.newBuilder(URI.create("https://api.deepseek.com/chat/completions")).header("Authorization", "Bearer " + apiKey).header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(body))).build();
             HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());

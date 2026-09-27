@@ -7,7 +7,6 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import java.net.URI;
 import java.net.http.*;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -32,7 +31,11 @@ public class KnowledgeCollector {
             new String[]{"Google AI", "https://blog.research.google/feeds/posts/default/-/AI"},
             new String[]{"DeepSeek", "https://api-docs.deepseek.com/updates/"}
     );
-    public KnowledgeCollector(JdbcTemplate jdbc) { this.jdbc = jdbc; }
+    public KnowledgeCollector(JdbcTemplate jdbc) {
+        this.jdbc = jdbc;
+        try { jdbc.execute("alter table source_articles add column summary TEXT"); }
+        catch (Exception ignored) { }
+    }
 
     public int refresh() {
         int saved = 0;
@@ -46,7 +49,9 @@ public class KnowledgeCollector {
                     Element item = (Element) items.item(i);
                     String title = text(item, "title"), url = text(item, "link"), published = text(item, "pubDate");
                     if (url.isBlank()) continue;
-                    saved += jdbc.update("insert or ignore into source_articles(source,title,url,published_at,fetched_at) values(?,?,?,?,?)", feed[0], title, url, published, OffsetDateTime.now().toString());
+                    String summary = cleanSummary(text(item, "description"));
+                    saved += jdbc.update("insert or ignore into source_articles(source,title,url,published_at,summary,fetched_at) values(?,?,?,?,?,?)", feed[0], title, url, published, summary, OffsetDateTime.now().toString());
+                    if (!summary.isBlank()) jdbc.update("update source_articles set summary=? where url=? and (summary is null or summary='')", summary, url);
                 }
             } catch (Exception ignored) { }
         }
@@ -54,12 +59,12 @@ public class KnowledgeCollector {
     }
 
     public List<SourceArticle> latest() {
-        return jdbc.query("select source,title,url,published_at from source_articles order by fetched_at desc limit 20", (rs, n) -> new SourceArticle(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4)));
+        return jdbc.query("select source,title,url,published_at,summary from source_articles order by fetched_at desc limit 20", (rs, n) -> article(rs));
     }
 
     public List<SourceArticle> candidatesFor(LearningTrack track, List<String> recentTitles) {
         List<SourceArticle> articles = track == LearningTrack.REDIS
-                ? jdbc.query("select source,title,url,published_at from source_articles where source='Redis Blog' order by fetched_at desc limit 30", (rs, n) -> new SourceArticle(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4)))
+                ? jdbc.query("select source,title,url,published_at,summary from source_articles where source='Redis Blog' order by fetched_at desc limit 30", (rs, n) -> article(rs))
                 : latest();
         List<SourceArticle> unused = articles.stream().filter(article -> !recentTitles.contains(article.title())).toList();
         return unused.isEmpty() ? articles : unused;
@@ -68,5 +73,14 @@ public class KnowledgeCollector {
     private String text(Element parent, String tag) {
         var nodes = parent.getElementsByTagName(tag);
         return nodes.getLength() == 0 ? "" : nodes.item(0).getTextContent().trim();
+    }
+
+    private SourceArticle article(java.sql.ResultSet rs) throws java.sql.SQLException {
+        return new SourceArticle(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5));
+    }
+
+    private String cleanSummary(String html) {
+        return html.replaceAll("<[^>]+>", " ").replace("&nbsp;", " ").replace("&amp;", "&")
+                .replaceAll("\\s+", " ").trim();
     }
 }

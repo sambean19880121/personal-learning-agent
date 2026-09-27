@@ -25,5 +25,6 @@ CREATE TABLE IF NOT EXISTS source_articles (
     title TEXT NOT NULL,
     url TEXT NOT NULL UNIQUE,
     published_at TEXT,
+    summary TEXT,
     fetched_at TEXT NOT NULL
 );
