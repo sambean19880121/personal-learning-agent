@@ -2,6 +2,7 @@
 
 ## 2026-09-27 — 0.0.1-SNAPSHOT
 
+- 显式添加 Kafka 客户端依赖，供代码直接使用 `ConsumerRecords` 等客户端类型。
 - 添加 Spring Kafka 依赖，使项目可使用 `org.springframework.kafka.listener.BatchInterceptor`。
 - 学习文章改为约 800–1200 字，增加机制、工程例子、适用边界和验证方法；生成时使用资讯源摘要，并在网页保留段落。
 - 修复 Redis 学习方向反复选择同一篇 FastAPI Redis SDK 文章：只提供 Redis Blog 候选，并优先排除近期已用标题。
