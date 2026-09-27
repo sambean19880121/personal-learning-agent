@@ -38,6 +38,10 @@ public class LearningSessionRepository {
         return tracks.isEmpty() ? LearningTrack.JAVA : LearningTrack.valueOf(tracks.getFirst());
     }
 
+    public List<String> recentTitles() {
+        return jdbc.query("select title from learning_sessions order by session_date desc limit 30", (rs, n) -> rs.getString(1));
+    }
+
     public void save(LearningSession session) {
         jdbc.update("insert into learning_sessions(session_date,track,title,article,completed,score,created_at) values(?,?,?,?,?,?,?) on conflict(session_date) do update set track=excluded.track,title=excluded.title,article=excluded.article,completed=excluded.completed,score=excluded.score", session.date().toString(), session.track().name(), session.title(), session.article(), session.completed() ? 1 : 0, session.score(), OffsetDateTime.now().toString());
         Long id = jdbc.queryForObject("select id from learning_sessions where session_date=?", Long.class, session.date().toString());

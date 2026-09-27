@@ -57,6 +57,14 @@ public class KnowledgeCollector {
         return jdbc.query("select source,title,url,published_at from source_articles order by fetched_at desc limit 20", (rs, n) -> new SourceArticle(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4)));
     }
 
+    public List<SourceArticle> candidatesFor(LearningTrack track, List<String> recentTitles) {
+        List<SourceArticle> articles = track == LearningTrack.REDIS
+                ? jdbc.query("select source,title,url,published_at from source_articles where source='Redis Blog' order by fetched_at desc limit 30", (rs, n) -> new SourceArticle(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4)))
+                : latest();
+        List<SourceArticle> unused = articles.stream().filter(article -> !recentTitles.contains(article.title())).toList();
+        return unused.isEmpty() ? articles : unused;
+    }
+
     private String text(Element parent, String tag) {
         var nodes = parent.getElementsByTagName(tag);
         return nodes.getLength() == 0 ? "" : nodes.item(0).getTextContent().trim();

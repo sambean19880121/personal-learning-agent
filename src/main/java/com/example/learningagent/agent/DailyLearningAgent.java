@@ -26,7 +26,7 @@ public class DailyLearningAgent {
         if (saved != null) { current.set(saved); return saved; }
         LearningTrack track = requestedTrack == null ? repository.nextTrack() : requestedTrack;
         collector.refresh();
-        LearningSession generated = deepSeek.generate(track, collector.latest());
+        LearningSession generated = deepSeek.generate(track, collector.candidatesFor(track, repository.recentTitles()));
         if (generated != null) { current.set(generated); repository.save(generated); return generated; }
         LearningSession session = switch (track) {
             case JAVA -> new LearningSession(LocalDate.now(), track, "Java 基础：集合与不可变性",

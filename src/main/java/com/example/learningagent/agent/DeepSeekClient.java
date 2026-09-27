@@ -62,7 +62,7 @@ public class DeepSeekClient {
         try {
             StringBuilder sources = new StringBuilder();
             for (SourceArticle a : articles) sources.append("标题：").append(a.title()).append("\n来源：").append(a.source()).append("\n链接：").append(a.url()).append("\n\n");
-            String prompt = "你是个人学习 Agent。请围绕学习方向 " + track + "，从候选文章中选择最适合今天学习的一篇，返回 JSON：{title, article, questions:[{prompt, expectedPoints}]}。article 用中文写 400 字以内，questions 必须正好 3 道，分别考察理解、应用、思考。不要返回 Markdown。\n候选文章：\n" + sources;
+            String prompt = "你是个人学习 Agent。请围绕学习方向 " + track + "，从候选文章中选择最适合今天学习的一篇。title 必须原样复制所选文章标题，内容必须紧扣该文章。返回 JSON：{title, article, questions:[{prompt, expectedPoints}]}。article 用中文写 400 字以内，questions 必须正好 3 道，分别考察理解、应用、思考。不要返回 Markdown。\n候选文章：\n" + sources;
             Map<String, Object> body = Map.of("model", "deepseek-flash", "messages", List.of(Map.of("role", "system", "content", "你是一位循序渐进的技术老师。"), Map.of("role", "user", "content", prompt)), "temperature", 0.4, "response_format", Map.of("type", "json_object"));
             HttpRequest request = HttpRequest.newBuilder(URI.create("https://api.deepseek.com/chat/completions")).header("Authorization", "Bearer " + apiKey).header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(body))).build();
             HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
@@ -70,10 +70,12 @@ public class DeepSeekClient {
             String content = mapper.readTree(response.body()).path("choices").path(0).path("message").path("content").asText(null);
             if (content == null) return null;
             JsonNode json = mapper.readTree(content);
+            String title = json.path("title").asText();
+            if (articles.stream().noneMatch(article -> article.title().equals(title))) return null;
             List<LearningSession.Question> questions = new java.util.ArrayList<>();
             json.path("questions").forEach(q -> questions.add(new LearningSession.Question(q.path("prompt").asText(), q.path("expectedPoints").asText())));
             if (questions.size() != 3) return null;
-            return new LearningSession(java.time.LocalDate.now(), track, json.path("title").asText(), json.path("article").asText(), questions, false, null);
+            return new LearningSession(java.time.LocalDate.now(), track, title, json.path("article").asText(), questions, false, null);
         } catch (Exception ignored) { return null; }
     }
 }
