@@ -1,0 +1,20 @@
+spring:
+  config:
+    import: optional:classpath:application-local.yml
+  application:
+    name: personal-learning-agent
+  datasource:
+    url: jdbc:sqlite:${user.home}/learning-agent.db
+    driver-class-name: org.sqlite.JDBC
+  sql:
+    init:
+      mode: always
+server:
+  port: 18080
+logging:
+  file:
+    name: logs/learning-agent.log
+  level:
+    com.example.learningagent: INFO
+agent:
+  reminder-time: "21:00"
