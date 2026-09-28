@@ -75,11 +75,12 @@ public class DeepSeekClient {
             if (content == null) return null;
             JsonNode json = mapper.readTree(content);
             String title = json.path("title").asText();
-            if (articles.stream().noneMatch(article -> article.title().equals(title))) return null;
+            SourceArticle selected = articles.stream().filter(article -> article.title().equals(title)).findFirst().orElse(null);
+            if (selected == null) return null;
             List<LearningSession.Question> questions = new java.util.ArrayList<>();
             json.path("questions").forEach(q -> questions.add(new LearningSession.Question(q.path("prompt").asText(), q.path("expectedPoints").asText())));
             if (questions.size() != 3) return null;
-            return new LearningSession(java.time.LocalDate.now(), track, title, json.path("article").asText(), questions, false, null);
+            return new LearningSession(java.time.LocalDate.now(), track, title, json.path("article").asText(), questions, false, null, selected.source(), selected.url());
         } catch (Exception ignored) { return null; }
     }
 }

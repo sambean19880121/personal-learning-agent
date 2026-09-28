@@ -31,13 +31,13 @@ public class DailyLearningAgent {
         LearningSession session = switch (track) {
             case JAVA -> new LearningSession(LocalDate.now(), track, "Java 基础：集合与不可变性",
                     "今天理解 List、Set、Map 的基本选择，以及为什么不可变对象更容易推理和并发使用。请结合一个实际例子思考。",
-                    questions("List、Set、Map 分别适合什么场景？", "解释不可变对象的一个好处。", "设计一个方法，如何避免把内部可变集合直接暴露出去？"), false, null);
+                    questions("List、Set、Map 分别适合什么场景？", "解释不可变对象的一个好处。", "设计一个方法，如何避免把内部可变集合直接暴露出去？"), false, null, "内置课程", null);
             case COMPUTER_SCIENCE -> new LearningSession(LocalDate.now(), track, "计算机基础：进程、线程与共享状态",
                     "今天学习进程和线程的区别，以及多个线程访问共享数据时为什么需要同步。重点关注状态、竞态和可见性。",
-                    questions("进程和线程的主要区别是什么？", "什么是竞态条件？", "给出一个避免共享可变状态的办法。"), false, null);
+                    questions("进程和线程的主要区别是什么？", "什么是竞态条件？", "给出一个避免共享可变状态的办法。"), false, null, "内置课程", null);
             case AI -> new LearningSession(LocalDate.now(), track, "AI 基础：Agent 的感知、决策与行动",
                     "Agent 不是一次性回答，而是围绕目标持续执行感知、判断、行动和记忆。今天用一个学习助手的例子拆解这条闭环。",
-                    questions("Agent 和普通聊天问答有什么区别？", "Agent 为什么需要记忆？", "为学习助手设计一个工具调用场景。"), false, null);
+                    questions("Agent 和普通聊天问答有什么区别？", "Agent 为什么需要记忆？", "为学习助手设计一个工具调用场景。"), false, null, "内置课程", null);
             case JAVA_COLLECTIONS -> fallback(track, "Java 集合与泛型：选择正确的数据结构");
             case JAVA_CONCURRENCY -> fallback(track, "Java 并发：线程安全与共享状态");
             case JVM -> fallback(track, "JVM：内存区域与垃圾回收");
@@ -66,7 +66,7 @@ public class DailyLearningAgent {
     private LearningSession fallback(LearningTrack track, String title) {
         return new LearningSession(LocalDate.now(), track, title,
                 "今天围绕「" + title + "」学习一个核心概念，理解它解决的问题、基本原理和实际使用方式，并思考它在真实项目中的边界。",
-                questions("这个主题解决什么问题？", "它的核心原理是什么？", "请结合一个工程场景说明如何使用。"), false, null);
+                questions("这个主题解决什么问题？", "它的核心原理是什么？", "请结合一个工程场景说明如何使用。"), false, null, "内置课程", null);
     }
 
     public LearningSession current() {
@@ -91,7 +91,7 @@ public class DailyLearningAgent {
             }
         }
         int score = (int) Math.round(details.stream().mapToInt(EvaluationResult.QuestionResult::score).average().orElse(0));
-        LearningSession result = new LearningSession(session.date(), session.track(), session.title(), session.article(), session.questions(), true, score);
+        LearningSession result = new LearningSession(session.date(), session.track(), session.title(), session.article(), session.questions(), true, score, session.source(), session.sourceUrl());
         current.set(result);
         repository.save(result);
         repository.saveAnswers(result, details, scoringMethod);

@@ -48,7 +48,7 @@ public class KnowledgeCollector {
                 for (int i = 0; i < Math.min(items.getLength(), 10); i++) {
                     Element item = (Element) items.item(i);
                     String title = text(item, "title"), url = text(item, "link"), published = text(item, "pubDate");
-                    if (url.isBlank()) continue;
+                    if (!(url.startsWith("https://") || url.startsWith("http://"))) continue;
                     String summary = cleanSummary(text(item, "description"));
                     saved += jdbc.update("insert or ignore into source_articles(source,title,url,published_at,summary,fetched_at) values(?,?,?,?,?,?)", feed[0], title, url, published, summary, OffsetDateTime.now().toString());
                     if (!summary.isBlank()) jdbc.update("update source_articles set summary=? where url=? and (summary is null or summary='')", summary, url);

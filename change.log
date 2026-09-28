@@ -1,5 +1,9 @@
 # Change Log
 
+## 2026-09-28
+
+- 学习文章保存并展示资讯来源和原文链接；旧文章按标题回填可匹配的来源。
+
 ## 2026-09-27 — 0.0.1-SNAPSHOT
 
 - 添加 RocketMQ 5.x Java gRPC 客户端依赖，提供 `SimpleConsumer` API。

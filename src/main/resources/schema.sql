@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS learning_sessions (
     article TEXT NOT NULL,
     completed INTEGER NOT NULL DEFAULT 0,
     score INTEGER,
+    source TEXT,
+    source_url TEXT,
     created_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS learning_questions (

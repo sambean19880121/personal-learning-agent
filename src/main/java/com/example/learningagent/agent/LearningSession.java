@@ -10,6 +10,8 @@ public record LearningSession(
         String article,
         List<Question> questions,
         boolean completed,
-        Integer score) {
+        Integer score,
+        String source,
+        String sourceUrl) {
     public record Question(String prompt, String expectedPoints) {}
 }

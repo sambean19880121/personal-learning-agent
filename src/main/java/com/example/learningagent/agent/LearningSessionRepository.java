@@ -17,6 +17,11 @@ public class LearningSessionRepository {
         addColumnIfMissing("reference_answer TEXT");
         try { jdbc.execute("alter table learning_sessions add column scoring_method TEXT"); }
         catch (Exception ignored) { }
+        try { jdbc.execute("alter table learning_sessions add column source TEXT"); }
+        catch (Exception ignored) { }
+        try { jdbc.execute("alter table learning_sessions add column source_url TEXT"); }
+        catch (Exception ignored) { }
+        jdbc.update("update learning_sessions set source=(select source from source_articles where title=learning_sessions.title order by fetched_at desc limit 1), source_url=(select url from source_articles where title=learning_sessions.title order by fetched_at desc limit 1) where source_url is null and exists(select 1 from source_articles where title=learning_sessions.title)");
     }
 
     private void addColumnIfMissing(String definition) {
@@ -25,10 +30,10 @@ public class LearningSessionRepository {
     }
 
     public LearningSession findByDate(LocalDate date) {
-        List<LearningSession> found = jdbc.query("select session_date, track, title, article, completed, score from learning_sessions where session_date = ?", (rs, n) -> {
+        List<LearningSession> found = jdbc.query("select session_date, track, title, article, completed, score, source, source_url from learning_sessions where session_date = ?", (rs, n) -> {
             List<LearningSession.Question> questions = jdbc.query("select prompt, expected_points from learning_questions q join learning_sessions s on q.session_id=s.id where s.session_date=? order by question_order", (qr, qn) -> new LearningSession.Question(qr.getString(1), qr.getString(2)), date.toString());
             Integer score = (Integer) rs.getObject("score");
-            return new LearningSession(LocalDate.parse(rs.getString(1)), LearningTrack.valueOf(rs.getString(2)), rs.getString(3), rs.getString(4), questions, rs.getBoolean(5), score);
+            return new LearningSession(LocalDate.parse(rs.getString(1)), LearningTrack.valueOf(rs.getString(2)), rs.getString(3), rs.getString(4), questions, rs.getBoolean(5), score, rs.getString(7), rs.getString(8));
         }, date.toString());
         return found.isEmpty() ? null : found.getFirst();
     }
@@ -43,7 +48,7 @@ public class LearningSessionRepository {
     }
 
     public void save(LearningSession session) {
-        jdbc.update("insert into learning_sessions(session_date,track,title,article,completed,score,created_at) values(?,?,?,?,?,?,?) on conflict(session_date) do update set track=excluded.track,title=excluded.title,article=excluded.article,completed=excluded.completed,score=excluded.score", session.date().toString(), session.track().name(), session.title(), session.article(), session.completed() ? 1 : 0, session.score(), OffsetDateTime.now().toString());
+        jdbc.update("insert into learning_sessions(session_date,track,title,article,completed,score,source,source_url,created_at) values(?,?,?,?,?,?,?,?,?) on conflict(session_date) do update set track=excluded.track,title=excluded.title,article=excluded.article,completed=excluded.completed,score=excluded.score,source=excluded.source,source_url=excluded.source_url", session.date().toString(), session.track().name(), session.title(), session.article(), session.completed() ? 1 : 0, session.score(), session.source(), session.sourceUrl(), OffsetDateTime.now().toString());
         Long id = jdbc.queryForObject("select id from learning_sessions where session_date=?", Long.class, session.date().toString());
         jdbc.update("delete from learning_questions where session_id=?", id);
         for (int i = 0; i < session.questions().size(); i++) { var q = session.questions().get(i); jdbc.update("insert into learning_questions(session_id,question_order,prompt,expected_points) values(?,?,?,?)", id, i, q.prompt(), q.expectedPoints()); }
